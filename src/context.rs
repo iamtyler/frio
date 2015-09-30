@@ -7,7 +7,8 @@
 *
 ***/
 
-use app::App;
+use app;
+use net;
 
 
 /****************************************************************************
@@ -20,18 +21,23 @@ pub struct Context;
 
 impl Context {
     //=======================================================================
-    pub fn new () -> Context {
-        Context
+    pub fn new () -> Result<Context, u32> {
+        if let Err(code) = net::initialize() {
+            return Err(code);
+        }
+
+        return Ok(Context);
     }
 
     //=======================================================================
-    pub fn run_app<S: super::Startup> (&mut self, startup: S) {
-        App::run(startup);
+    pub fn run_app<S: app::Startup> (&mut self, startup: S) {
+        app::App::run(startup);
     }
 }
 
 impl Drop for Context {
     //=======================================================================
     fn drop (&mut self) {
+        net::cleanup();
     }
 }

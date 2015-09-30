@@ -9,10 +9,72 @@
 
 use std::rc::Rc;
 use std::ptr;
+use std::result;
 
-use types::Handle;
-use types::Endpoint;
 use win32;
+
+
+/****************************************************************************
+*
+*   Types
+*
+***/
+
+#[cfg(target_pointer_width = "32")]
+pub type Handle = u32;
+
+#[cfg(target_pointer_width = "64")]
+pub type Handle = u64;
+
+pub type Result<T> = result::Result<T, u32>;
+
+
+/****************************************************************************
+*
+*   Client code
+*
+***/
+
+pub trait Startup {
+    fn start (
+        &mut self,
+        core: Rc<App>
+    );
+}
+
+pub trait Cleanup {
+    fn cleanup_start (&mut self);
+    fn cleanup_is_complete (&mut self) -> bool { return true; }
+}
+
+pub trait Task {
+    fn task_run (&mut self);
+}
+
+
+/****************************************************************************
+*
+*   EventNotify
+*
+***/
+
+pub trait EventNotify {
+    fn on_app_event (&mut self, app: Rc<App>);
+}
+
+pub struct EventData {
+    pub overlapped: win32::OVERLAPPED,
+    pub offset: usize,
+}
+
+impl EventData {
+    pub fn new () -> EventData {
+        EventData {
+            overlapped: win32::OVERLAPPED::new(),
+            offset: 0,
+        }
+    }
+}
 
 
 /****************************************************************************
@@ -27,7 +89,7 @@ pub struct App {
 
 impl App {
     //=======================================================================
-    pub fn run<S: super::Startup> (mut startup: S) {
+    pub fn run<S: Startup> (mut startup: S) {
         let handle;
         unsafe {
             handle = win32::CreateIoCompletionPort(
@@ -46,11 +108,13 @@ impl App {
         });
         startup.start(core.clone());
 
+        // TODO: calculate overlapped offset from notify struct
+
         let mut overlapped: *mut win32::OVERLAPPED = ptr::null_mut();
         let mut bytes: u32 = 0;
         let mut key: win32::ULONG_PTR = 0;
         loop {
-            let mut success: bool;
+            let success: bool;
             unsafe {
                 success = win32::GetQueuedCompletionStatus(
                     core.handle as win32::HANDLE,
@@ -69,28 +133,30 @@ impl App {
     }
 
     //=======================================================================
-    pub fn cleanup_register (&mut self, cleanup: Rc<super::Cleanup>) {
+    pub fn stop (self) {
+        // TODO: figure out how to stop this thing
+    }
+
+    //=======================================================================
+    pub fn cleanup_register (&mut self, cleanup: Rc<Cleanup>) {
         let _ = cleanup;
     }
 
     //=======================================================================
-    pub fn task_queue (&mut self, task: Box<super::Task>) {
+    pub fn task_queue (&mut self, task: Box<Task>) {
         let _ = task;
     }
 
     //=======================================================================
-    pub fn tcp_listen<N: super::TcpConnectNotify> (
-        &mut self,
-        endpoint: Endpoint,
-        notify: N
-    ) {
-        let _ = notify;
-        let _ = endpoint;
-    }
-
-    //=======================================================================
-    fn associate (&self, handle: Handle) {
-
+    pub fn link (&mut self, handle: Handle) -> bool {
+        return unsafe {
+            win32::CreateIoCompletionPort(
+                handle as win32::HANDLE,
+                self.handle as win32::HANDLE,
+                0, // TODO: pass in link notify
+                0
+            ) as Handle
+        } == self.handle;
     }
 }
 
@@ -100,8 +166,3 @@ impl App {
 *   Public functions
 *
 ***/
-
-//===========================================================================
-pub fn associate (app: Rc<App>, handle: Handle) {
-    app.associate(handle);
-}

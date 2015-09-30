@@ -1,23 +1,13 @@
 /****************************************************************************
 *
-*   types.rs
+*   net/endpoint.rs
 *   frio
 *
 *   Copyright 2015 Tyler Cole
 *
 ***/
 
-
-/****************************************************************************
-*
-*   Types
-*
-***/
-
-#[cfg(target_pointer_width = "32")]
-pub type Handle = u32;
-#[cfg(target_pointer_width = "64")]
-pub type Handle = u64;
+// TODO: support IPv6
 
 
 /****************************************************************************
@@ -89,3 +79,4 @@ impl Endpoint {
         Endpoint::V4(EndpointV4::new(address, port))
     }
 }
+

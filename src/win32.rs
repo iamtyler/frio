@@ -46,6 +46,8 @@ pub const IPPROTO_UDP: i32 = 17;
 pub const AI_NONE: i32 = 0x00000000;
 pub const AI_PASSIVE: i32 = 0x00000001;
 
+pub const ERROR_IO_PENDING: i32 = 997;
+
 #[repr(C)]
 pub struct WSAData {
     pub wVersion: u16,
@@ -124,12 +126,28 @@ extern "stdcall" {
         len: i32,     // IN
         flags: i32    // IN
     ) -> i32;
+
+    pub fn WSAGetLastError () -> u32;
+}
+
+#[link(name = "Mswsock")]
+extern "stdcall" {
+    pub fn AcceptEx (
+        sListenSocket: SOCKET,              // IN
+        sAcceptSocket: SOCKET,              // IN
+        lpOutputBuffer: *mut libc::c_void,  // IN
+        dwReceveDataLength: u32,            // IN
+        dwLocalAddressLength: u32,          // IN
+        dwRemoteAddressLength: u32,         // IN
+        lpdwBytesReceived: *mut u32,        // OUT
+        lpOverlapped: *mut OVERLAPPED       // IN
+    ) -> i32;
 }
 
 
 /****************************************************************************
 *
-*   IO Completion Ports
+*   Kernel32
 *
 ***/
 
@@ -194,4 +212,6 @@ extern "stdcall" {
     pub fn CloseHandle (
         hObject: HANDLE // IN
     ) -> BOOL;
+
+    pub fn GetLastError () -> u32;
 }
