@@ -130,7 +130,7 @@ extern "stdcall" {
     pub fn WSAGetLastError () -> u32;
 }
 
-#[link(name = "Mswsock")]
+#[link(name = "wsock32")]
 extern "stdcall" {
     pub fn AcceptEx (
         sListenSocket: SOCKET,              // IN
